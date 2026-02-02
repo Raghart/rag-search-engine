@@ -10,9 +10,13 @@ def load_movies():
 
 def search_movies(data, query):
     result = []
+    query_slice = query.split()
+    filtered_query_slice = list(filter(lambda x: len(x) > 0, query_slice))
+
     for movie in data:
-        if query in parse_movie_title(movie["title"]):
-            result.append(movie)
+        for query_word in filtered_query_slice:
+            if query_word in parse_movie_title(movie["title"]):
+                result.append(movie)
     result.sort(key=lambda x: x["id"])
     return result[:5]
 
