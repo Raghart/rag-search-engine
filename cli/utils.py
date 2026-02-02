@@ -10,15 +10,21 @@ def load_movies():
 
 def search_movies(data, query):
     result = []
-    query_slice = query.split()
-    filtered_query_slice = list(filter(lambda x: len(x) > 0, query_slice))
+    tokenized_query = tokenize_text(query)
 
     for movie in data:
-        for query_word in filtered_query_slice:
-            if query_word in parse_movie_title(movie["title"]):
+        tokenized_title = tokenize_text(movie["title"])
+        for query_word in tokenized_query:
+            if query_word in tokenized_title:
                 result.append(movie)
+                
     result.sort(key=lambda x: x["id"])
     return result[:5]
+
+def tokenize_text(title: str):
+    parsed_movie = parse_movie_title(title)
+    movie_tokens = parsed_movie.split()
+    return list(filter(lambda title: len(title) > 0, movie_tokens))
 
 def parse_movie_title(title):
     return title.lower().translate(str.maketrans("", "", string.punctuation))
