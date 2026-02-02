@@ -17,5 +17,4 @@ def search_movies(data, query):
     return result[:5]
 
 def parse_movie_title(title):
-    translator = str.maketrans(dict.fromkeys(string.punctuation, ""))
-    return title.lower().translate(translator)
+    return title.lower().translate(str.maketrans("", "", string.punctuation))
