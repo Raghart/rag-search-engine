@@ -1,4 +1,4 @@
-import json, os
+import json, os, string
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 DATA_PATH = os.path.join(PROJECT_ROOT, "data", "movies.json")
@@ -11,7 +11,11 @@ def load_movies():
 def search_movies(data, query):
     result = []
     for movie in data:
-        if query in movie["title"].lower():
+        if query in parse_movie_title(movie["title"]):
             result.append(movie)
     result.sort(key=lambda x: x["id"])
     return result[:5]
+
+def parse_movie_title(title):
+    translator = str.maketrans(dict.fromkeys(string.punctuation, ""))
+    return title.lower().translate(translator)
