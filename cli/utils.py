@@ -11,7 +11,7 @@ def load_movies():
 def search_movies(data, query):
     result = []
     for movie in data:
-        if query in movie["title"]:
+        if query in movie["title"].lower():
             result.append(movie)
     result.sort(key=lambda x: x["id"])
     return result[:5]
