@@ -8,7 +8,7 @@ DOCMAP_PATH = os.path.join(PROJECT_ROOT, "cache", "docmap.pkl")
 class InvertedIndex:
     def __init__(self):
         self.index = defaultdict(set)
-        self.docmap = {}
+        self.docmap: dict[int, dict] = {}
     
     def __add_document(self, doc_id, text):
         tokenized_arr = tokenize_text(text)
@@ -24,7 +24,18 @@ class InvertedIndex:
         for movie in movies:
             self.__add_document(movie["id"], f"{movie['title']} {movie['description']}")
             self.docmap[movie["id"]] = movie
-    
+
+    def load(self):
+        if not os.path.exists(IDX_PATH) or not os.path.exists(DOCMAP_PATH):
+            raise Exception("Invalid loading, first you have to use the build code to generate the cache!")
+        
+        with open(IDX_PATH, "rb") as f:
+            idx_data = pickle.load(f)
+        
+        with open(DOCMAP_PATH, "rb") as f:
+            docmap_data = pickle.load(f)
+        
+        return idx_data, docmap_data
     def save(self):
         if not os.path.exists("cache"):
             os.makedirs("cache")
@@ -38,5 +49,6 @@ def build_inverted_idx():
     inverted_idx.build()
     inverted_idx.save()
 
-    id_set = inverted_idx.get_documents('merida')
-    print(f"First document for token 'merida' = {id_set[0]}")
+def load_indexes():
+    inverted_idx = InvertedIndex()
+    return inverted_idx.load()

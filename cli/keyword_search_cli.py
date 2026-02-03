@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse
-from utils import load_movies, search_movies
-from inverted_index import build_inverted_idx
+from utils import search_movies
+from inverted_index import build_inverted_idx, load_indexes
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -16,11 +16,11 @@ def main() -> None:
     match args.command:
         case "search":
             print(f"Searching for: {args.query}")
-            data = load_movies()
-            movies_result = search_movies(data, args.query)
-            for idx, movie in enumerate(movies_result, 1):
+            idx_data, docmap_data = load_indexes()
+            arr_result = search_movies(idx_data, docmap_data, args.query)
+            for idx, movie in enumerate(arr_result, 1):
                 print(f"{idx}. ({movie['id']}) {movie['title']}")
-        
+
         case "build":
             print("building inverted index...")
             build_inverted_idx()

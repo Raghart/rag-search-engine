@@ -18,17 +18,15 @@ def load_stopwords():
 
 STOPWORD_LIST = load_stopwords()
 
-def search_movies(data, query):
+def search_movies(idx_data, docmap_data, query):
     result = []
     tokenized_query = tokenize_text(query)
 
-    for movie in data:
-        tokenized_title = tokenize_text(movie["title"])
-        if has_matching_token(tokenized_query, tokenized_title):
-            result.append(movie)
-
-    result.sort(key=lambda x: x["id"])
-    return result[:5]
+    for token in tokenized_query:
+        id_set = idx_data[token]
+        for id in id_set:
+            result.append(docmap_data[id])
+    return result
 
 def has_matching_token(query_tokens, movie_tokens):
     for movie_word in movie_tokens:
