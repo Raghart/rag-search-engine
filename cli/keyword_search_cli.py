@@ -2,7 +2,7 @@
 
 import argparse
 from utils import load_movies, search_movies
-from inverted_index import InvertedIndex
+from inverted_index import build_inverted_idx
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -20,16 +20,12 @@ def main() -> None:
             data = load_movies()
             movies_result = search_movies(data, args.query)
             for idx, movie in enumerate(movies_result, 1):
-                print(f"{idx}. {movie['title']}")
+                print(f"{idx}. ({movie['id']}) {movie['title']}")
         
         case "build":
-            inverted_idx = InvertedIndex()
-            movie_data = load_movies()
-            inverted_idx.build(movie_data)
-            inverted_idx.save()
-
-            id_set = inverted_idx.get_documents('merida')
-            print(f"First document for token 'merida' = {id_set[0]}")
+            print("building inverted index...")
+            build_inverted_idx()
+            print("the building of the inverted index was sucessful!")
             
         case _:
             parser.print_help()
