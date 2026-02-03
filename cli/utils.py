@@ -18,23 +18,6 @@ def load_stopwords():
 
 STOPWORD_LIST = load_stopwords()
 
-def search_movies(idx_data, docmap_data, query):
-    result = []
-    tokenized_query = tokenize_text(query)
-
-    for token in tokenized_query:
-        id_set = idx_data[token]
-        for id in id_set:
-            result.append(docmap_data[id])
-    return result
-
-def has_matching_token(query_tokens, movie_tokens):
-    for movie_word in movie_tokens:
-        for query in query_tokens:
-            if query in movie_word:
-                return True
-    return False
-
 def tokenize_text(title: str):
     parsed_movie = parse_movie_title(title)
     movie_tokens = parsed_movie.split()

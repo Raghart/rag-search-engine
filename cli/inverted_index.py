@@ -1,6 +1,6 @@
 import pickle, os
 from utils import tokenize_text, load_movies, PROJECT_ROOT
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 IDX_PATH = os.path.join(PROJECT_ROOT, "cache", "index.pkl")
 DOCMAP_PATH = os.path.join(PROJECT_ROOT, "cache", "docmap.pkl")
@@ -9,6 +9,7 @@ class InvertedIndex:
     def __init__(self):
         self.index = defaultdict(set)
         self.docmap: dict[int, dict] = {}
+        self.term_frequencies = defaultdict(Counter)
     
     def __add_document(self, doc_id, text):
         tokenized_arr = tokenize_text(text)
@@ -30,12 +31,11 @@ class InvertedIndex:
             raise Exception("Invalid loading, first you have to use the build code to generate the cache!")
         
         with open(IDX_PATH, "rb") as f:
-            idx_data = pickle.load(f)
+            self.index = pickle.load(f)
         
         with open(DOCMAP_PATH, "rb") as f:
-            docmap_data = pickle.load(f)
-        
-        return idx_data, docmap_data
+            self.docmap = pickle.load(f)
+
     def save(self):
         if not os.path.exists("cache"):
             os.makedirs("cache")
@@ -49,6 +49,19 @@ def build_inverted_idx():
     inverted_idx.build()
     inverted_idx.save()
 
-def load_indexes():
-    inverted_idx = InvertedIndex()
-    return inverted_idx.load()
+def search_movies(query):
+    result = []
+    idx = InvertedIndex()
+    idx.load()
+    tokenized_query = tokenize_text(query)
+
+    for token in tokenized_query:
+        id_set = idx.get_documents(token)
+        for id in id_set:
+            result.append(idx.docmap[id])
+            if len(result) >= 5:
+                break
+        if len(result) >= 5:
+            break
+            
+    return result
