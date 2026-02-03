@@ -9,9 +9,8 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     search_parser = subparsers.add_parser("search", help="Search movies using BM25")
-    search_parser = subparsers.add_parser("build", help="Build an inversed index of the movies")
-    search_parser.add_argument("query", nargs="?", type=str, help="Search query")
-
+    subparsers = subparsers.add_parser("build", help="Build an inversed index of the movies")
+    search_parser.add_argument("query", type=str, help="Search query")
     args = parser.parse_args()
 
     match args.command:
