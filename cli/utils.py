@@ -1,4 +1,5 @@
 import json, os, string
+from nltk.stem import PorterStemmer
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 DATA_PATH = os.path.join(PROJECT_ROOT, "data", "movies.json")
@@ -25,7 +26,6 @@ def search_movies(data, query):
         tokenized_title = tokenize_text(movie["title"])
         if has_matching_token(tokenized_query, tokenized_title):
             result.append(movie)
-            
 
     result.sort(key=lambda x: x["id"])
     return result[:5]
@@ -40,8 +40,13 @@ def has_matching_token(query_tokens, movie_tokens):
 def tokenize_text(title: str):
     parsed_movie = parse_movie_title(title)
     movie_tokens = parsed_movie.split()
-
-    return list(filter(lambda word: word and word not in STOPWORD_LIST, movie_tokens))
+    steammer = PorterStemmer()
+    filtered_tokens = list(filter(lambda word: word and word not in STOPWORD_LIST, movie_tokens))
+    
+    stemmed_tokens = []
+    for token in filtered_tokens:
+        stemmed_tokens.append(steammer.stem(token))
+    return stemmed_tokens
 
 def parse_movie_title(title):
     return title.lower().translate(str.maketrans("", "", string.punctuation))
