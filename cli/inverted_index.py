@@ -28,6 +28,14 @@ class InvertedIndex:
             raise Exception("the term to search must only be one word")
         return self.term_frequencies[doc_id][parsed_term[0]]
     
+    def get_bm25_idf(self, term: str) -> float:
+        tokenized_slice = tokenize_text(term)
+        if len(tokenized_slice) != 1:
+            raise Exception("the term to search must only be one word")
+        N = len(self.docmap)
+        df = len(self.index[tokenized_slice[0]])
+        return math.log((N - df + 0.5)/(df+0.5)+1)
+    
     def build(self):
         movies = load_movies()
         for movie in movies:
@@ -101,3 +109,8 @@ def calculate_tfidf(id: int, term: str):
     tf_score = idx.get_tf(id, term)
     idf_score = calculate_idf(term)
     return tf_score * idf_score
+
+def calculate_bm25_idf(term: str):
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_bm25_idf(term)

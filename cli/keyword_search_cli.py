@@ -2,7 +2,7 @@
 
 import argparse
 from inverted_index import build_inverted_idx, search_movies, search_term_frequencies
-from inverted_index import calculate_idf, calculate_tfidf
+from inverted_index import calculate_idf, calculate_tfidf, calculate_bm25_idf
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -21,6 +21,9 @@ def main() -> None:
     tfidf_parser = subparsers.add_parser("tfidf", help="calculate the tf-idf of a single word")
     tfidf_parser.add_argument("doc_id", type=int, help="document ID")
     tfidf_parser.add_argument("term", type=str, help="term used for the calculation")
+
+    bm25_idf_parser = subparsers.add_parser("bm25idf", help="Get BM25 IDF score for a given term")
+    bm25_idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")
 
     search_parser.add_argument("query", type=str, help="Search query")
     args = parser.parse_args()
@@ -51,6 +54,11 @@ def main() -> None:
             print(f"calculating the tf-idf for the word: '{args.term}'...")
             tf_idf_score = calculate_tfidf(int(args.doc_id), args.term)
             print(f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf_score:.2f}")
+        case "bm25idf":
+            print(f"calculating the BM25 IDF score for the word: '{args.term}'")
+            bm25_score = calculate_bm25_idf(args.term)
+            print(f"BM25 IDF score of '{args.term}': {bm25_score:.2f}")
+
         case _:
             parser.print_help()
 
