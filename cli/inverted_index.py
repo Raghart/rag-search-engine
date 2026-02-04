@@ -91,9 +91,6 @@ def calculate_idf(term: str):
     if len(tokenized_list) != 1:
         raise Exception("Can only calculate the idf of one word at a time")
     
-    tokenized_term = tokenized_list[0]
-    id_set = idx.get_documents(tokenized_term)
     total_doc_count = len(idx.docmap)
-    term_match_doc_count = len(id_set)
-
+    term_match_doc_count = len(idx.index[tokenized_list[0]])
     return math.log((total_doc_count + 1) / (term_match_doc_count + 1))
