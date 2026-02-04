@@ -1,4 +1,4 @@
-import pickle, os
+import pickle, os, math
 from utils import tokenize_text, load_movies, PROJECT_ROOT
 from collections import defaultdict, Counter
 
@@ -18,7 +18,7 @@ class InvertedIndex:
             self.index[token].add(doc_id)
             self.term_frequencies[doc_id][token] += 1
             
-    def get_documents(self, term):
+    def get_documents(self, term: str):
         id_set = self.index[term.lower()]
         return sorted(list(id_set))
     
@@ -79,7 +79,21 @@ def search_movies(query):
             
     return result
 
-def search_term_frequencies(id, term):
+def search_term_frequencies(id: int, term: str):
     idx = InvertedIndex()
     idx.load()
     return idx.get_tf(int(id), term)
+
+def calculate_idf(term: str):
+    idx = InvertedIndex()
+    idx.load()
+    tokenized_list = tokenize_text(term)
+    if len(tokenized_list) != 1:
+        raise Exception("Can only calculate the idf of one word at a time")
+    
+    tokenized_term = tokenized_list[0]
+    id_set = idx.get_documents(tokenized_term)
+    total_doc_count = len(idx.docmap)
+    term_match_doc_count = len(id_set)
+
+    return math.log((total_doc_count + 1) / (term_match_doc_count + 1))

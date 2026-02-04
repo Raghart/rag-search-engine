@@ -2,6 +2,7 @@
 
 import argparse
 from inverted_index import build_inverted_idx, search_movies, search_term_frequencies
+from inverted_index import calculate_idf
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -13,6 +14,9 @@ def main() -> None:
     tf_parser = subparsers.add_parser("tf", help="count the number of times a term appear")
     tf_parser.add_argument("id", type=int, help="movie ID number")
     tf_parser.add_argument("term", type=str, help="word to search")
+
+    idf_parser = subparsers.add_parser("idf", help="calculate de inverse document frequency of a word")
+    idf_parser.add_argument("term", type=str, help="Word to calculate")
 
     search_parser.add_argument("query", type=str, help="Search query")
     args = parser.parse_args()
@@ -33,6 +37,11 @@ def main() -> None:
             print(f"getting the number of times {args.term} is repeated...")
             num_times = search_term_frequencies(args.id, args.term)
             print(f"Times repeated: {num_times}")
+        
+        case "idf":
+            print(f"calculating the idf for the word: '{args.term}'...")
+            idf = calculate_idf(args.term)
+            print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
             
         case _:
             parser.print_help()
