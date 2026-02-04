@@ -37,17 +37,14 @@ class InvertedIndex:
         for token in tokenized_query:
             id_set = self.index[token]
             for doc_id in id_set:
-                if doc_id in score_dict:
-                    score_dict[doc_id] += self.bm25(doc_id, token)
-                else:
-                    score_dict[doc_id] = self.bm25(doc_id, token)
+                score_dict[doc_id] = score_dict.get(doc_id, 0) + self.bm25(doc_id, token)
         
         documents_array = []
         for doc_id, score in score_dict.items():
             documents_array.append((self.docmap[doc_id], score))
         
-        sorted_array = list(sorted(documents_array, key=lambda x: x[1], reverse=True))
-        return sorted_array[:limit]
+        sorted_array = list(sorted(documents_array, key=lambda x: x[1], reverse=True)[:limit])
+        return sorted_array
     
     def get_bm25_idf(self, term: str) -> float:
         tokenized_slice = tokenize_text(term)
