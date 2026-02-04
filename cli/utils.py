@@ -1,10 +1,6 @@
 import json, os, string
 from nltk.stem import PorterStemmer
-
-PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
-DATA_PATH = os.path.join(PROJECT_ROOT, "data", "movies.json")
-STOPWORDS_PATH = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
-
+from consts import DATA_PATH, STOPWORDS_PATH
 
 def load_movies():
     with open(DATA_PATH, "r") as f:

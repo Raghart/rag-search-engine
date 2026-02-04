@@ -1,10 +1,7 @@
 import pickle, os, math
-from utils import tokenize_text, load_movies, PROJECT_ROOT
+from utils import tokenize_text, load_movies
 from collections import defaultdict, Counter
-
-IDX_PATH = os.path.join(PROJECT_ROOT, "cache", "index.pkl")
-DOCMAP_PATH = os.path.join(PROJECT_ROOT, "cache", "docmap.pkl")
-TERM_PATH = os.path.join(PROJECT_ROOT, "cache", "term_frequencies.pkl")
+from consts import BM25_K1, DOCMAP_PATH, IDX_PATH, TERM_PATH
 
 class InvertedIndex:
     def __init__(self):
@@ -35,6 +32,10 @@ class InvertedIndex:
         N = len(self.docmap)
         df = len(self.index[tokenized_slice[0]])
         return math.log((N - df + 0.5)/(df+0.5)+1)
+    
+    def get_bm25_tf(self, doc_id: int, term: str, k1=BM25_K1):
+        tf = self.get_tf(doc_id, term)
+        return (tf * (k1+1)) / (tf+k1)
     
     def build(self):
         movies = load_movies()
@@ -114,3 +115,8 @@ def calculate_bm25_idf(term: str):
     idx = InvertedIndex()
     idx.load()
     return idx.get_bm25_idf(term)
+
+def calculate_bm25_tf(doc_id: int, term: str, k1=float) -> float:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_bm25_tf(doc_id, term, k1)
