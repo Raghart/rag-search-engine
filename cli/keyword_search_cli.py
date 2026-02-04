@@ -12,14 +12,14 @@ def main() -> None:
     subparsers.add_parser("build", help="Build an inversed index of the movies")
 
     tf_parser = subparsers.add_parser("tf", help="count the number of times a term appear")
-    tf_parser.add_argument("id", type=int, help="movie ID number")
+    tf_parser.add_argument("doc_id", type=int, help="movie ID number")
     tf_parser.add_argument("term", type=str, help="word to search")
 
     idf_parser = subparsers.add_parser("idf", help="calculate de inverse document frequency of a word")
     idf_parser.add_argument("term", type=str, help="Word to calculate")
 
     tfidf_parser = subparsers.add_parser("tfidf", help="calculate the tf-idf of a single word")
-    tfidf_parser.add_argument("id", type=int, help="document ID")
+    tfidf_parser.add_argument("doc_id", type=int, help="document ID")
     tfidf_parser.add_argument("term", type=str, help="term used for the calculation")
 
     search_parser.add_argument("query", type=str, help="Search query")
@@ -39,7 +39,7 @@ def main() -> None:
         
         case "tf":
             print(f"getting the number of times {args.term} is repeated...")
-            num_times = search_term_frequencies(args.id, args.term)
+            num_times = search_term_frequencies(args.doc_id, args.term)
             print(f"Times repeated: {num_times}")
         
         case "idf":
@@ -49,8 +49,8 @@ def main() -> None:
         
         case "tfidf":
             print(f"calculating the tf-idf for the word: '{args.term}'...")
-            tf_idf_score = calculate_tfidf(int(args.id), args.term)
-            print(f"TF-IDF score of '{args.term}' in document '{args.id}': {tf_idf_score:.2f}")
+            tf_idf_score = calculate_tfidf(int(args.doc_id), args.term)
+            print(f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf_score:.2f}")
         case _:
             parser.print_help()
 
