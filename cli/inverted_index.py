@@ -4,6 +4,7 @@ from collections import defaultdict, Counter
 
 IDX_PATH = os.path.join(PROJECT_ROOT, "cache", "index.pkl")
 DOCMAP_PATH = os.path.join(PROJECT_ROOT, "cache", "docmap.pkl")
+TERM_PATH = os.path.join(PROJECT_ROOT, "cache", "term_frequencies.pkl")
 
 class InvertedIndex:
     def __init__(self):
@@ -15,10 +16,17 @@ class InvertedIndex:
         tokenized_arr = tokenize_text(text)
         for token in tokenized_arr:
             self.index[token].add(doc_id)
-    
+            self.term_frequencies[doc_id][token] += 1
+            
     def get_documents(self, term):
         id_set = self.index[term.lower()]
         return sorted(list(id_set))
+    
+    def get_tf(self, doc_id: int, term: str):
+        parsed_term = tokenize_text(term)
+        if len(parsed_term) == 0 or len(parsed_term) > 1:
+            raise Exception("the term to search must only be one word")
+        return self.term_frequencies[doc_id][parsed_term[0]]
     
     def build(self):
         movies = load_movies()
@@ -35,6 +43,9 @@ class InvertedIndex:
         
         with open(DOCMAP_PATH, "rb") as f:
             self.docmap = pickle.load(f)
+        
+        with open(TERM_PATH, "rb") as f:
+            self.term_frequencies = pickle.load(f)
 
     def save(self):
         if not os.path.exists("cache"):
@@ -43,6 +54,8 @@ class InvertedIndex:
             pickle.dump(self.index, f)
         with open(DOCMAP_PATH, "wb") as f:
             pickle.dump(self.docmap, f)
+        with open(TERM_PATH, "wb") as f:
+            pickle.dump(self.term_frequencies, f)
 
 def build_inverted_idx():
     inverted_idx = InvertedIndex()
@@ -65,3 +78,8 @@ def search_movies(query):
             break
             
     return result
+
+def search_term_frequencies(id, term):
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_tf(int(id), term)
