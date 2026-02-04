@@ -27,6 +27,28 @@ class InvertedIndex:
             raise Exception("the term to search must only be one word")
         return self.term_frequencies[doc_id][parsed_term[0]]
     
+    def bm25(self, doc_id: int, term: str):
+        return self.get_bm25_tf(doc_id, term) * self.get_bm25_idf(term)
+    
+    def bm25_search(self, query: str, limit: int):
+        tokenized_query = tokenize_text(query)
+        score_dict = {}
+        
+        for token in tokenized_query:
+            id_set = self.index[token]
+            for doc_id in id_set:
+                if doc_id in score_dict:
+                    score_dict[doc_id] += self.bm25(doc_id, token)
+                else:
+                    score_dict[doc_id] = self.bm25(doc_id, token)
+        
+        documents_array = []
+        for doc_id, score in score_dict.items():
+            documents_array.append((self.docmap[doc_id], score))
+        
+        sorted_array = list(sorted(documents_array, key=lambda x: x[1], reverse=True))
+        return sorted_array[:limit]
+    
     def get_bm25_idf(self, term: str) -> float:
         tokenized_slice = tokenize_text(term)
         if len(tokenized_slice) != 1:
@@ -137,3 +159,8 @@ def calculate_bm25_tf(doc_id: int, term: str, k1: float, b: float) -> float:
     idx = InvertedIndex()
     idx.load()
     return idx.get_bm25_tf(doc_id, term, k1, b)
+
+def search_bm25(query: str):
+    idx = InvertedIndex()
+    idx.load()
+    return idx.bm25_search(query, 5)
