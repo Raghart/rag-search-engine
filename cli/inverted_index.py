@@ -94,3 +94,10 @@ def calculate_idf(term: str):
     total_doc_count = len(idx.docmap)
     term_match_doc_count = len(idx.index[tokenized_list[0]])
     return math.log((total_doc_count + 1) / (term_match_doc_count + 1))
+
+def calculate_tfidf(id: int, term: str):
+    idx = InvertedIndex()
+    idx.load()
+    tf_score = idx.get_tf(id, term)
+    idf_score = calculate_idf(term)
+    return tf_score * idf_score
