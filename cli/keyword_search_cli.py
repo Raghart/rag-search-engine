@@ -11,6 +11,8 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     search_parser = subparsers.add_parser("search", help="Search movies using BM25")
+    search_parser.add_argument("query", type=str, help="Search query")
+
     subparsers.add_parser("build", help="Build an inversed index of the movies")
 
     tf_parser = subparsers.add_parser("tf", help="count the number of times a term appear")
@@ -36,7 +38,6 @@ def main() -> None:
     bm25_search_parser = subparsers.add_parser("bm25search", help="Search movies using full BM25 scoring")
     bm25_search_parser.add_argument("query", type=str, help="Search query")
 
-    search_parser.add_argument("query", type=str, help="Search query")
     args = parser.parse_args()
 
     match args.command:
@@ -84,7 +85,6 @@ def main() -> None:
 
         case _:
             parser.print_help()
-
 
 if __name__ == "__main__":
     main()
