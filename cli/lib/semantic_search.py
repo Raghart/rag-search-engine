@@ -22,6 +22,19 @@ class SemanticSearch:
             np.save(f, self.embeddings)
         return self.embeddings
     
+    def search(self, query: str, limit: int):
+        if self.embeddings is None:
+            raise ValueError("No embeddings loaded. Call `load_or_create_embeddings` first.")
+        
+        query_embedding = self.generate_embedding(query)
+        result_slice = []
+        for idx, doc_embedding in enumerate(self.embeddings, 0):
+            cos_score = cosine_similarity(query_embedding, doc_embedding)
+            result_slice.append((cos_score, self.documents[idx]))
+        
+        sorted_list = list(sorted(result_slice, key=lambda x: x[0], reverse=True))
+        return sorted_list[:limit]
+    
     def load_or_create_embeddings(self, documents):
         self.documents = documents
         for doc in self.documents:
@@ -62,12 +75,19 @@ def verify_embeddings():
         documents = json.load(f)
 
     movie_list = documents["movies"]
-
-    print(f"documents type: {type(movie_list)}")
-    
     embeddings = sem_search.load_or_create_embeddings(movie_list)
     print(f"Number of docs:   {len(documents)}")
     print(f"Embeddings shape: {embeddings.shape[0]} vectors in {embeddings.shape[1]} dimensions")
+
+def cosine_similarity(vec1, vec2):
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+
+    return dot_product / (norm1 * norm2)
 
 def embed_query_text(query):
     sem_search = SemanticSearch()
@@ -75,3 +95,13 @@ def embed_query_text(query):
     print(f"Query: {query}")
     print(f"First 5 dimensions: {embedding[:5]}")
     print(f"Shape: {embedding.shape}")
+
+def semantic_search(query, limit=5):
+    sem_search = SemanticSearch()
+    with open(DATA_PATH, "rb") as f:
+        movie_data = json.load(f)
+    
+    movies_arr = movie_data["movies"]
+
+    sem_search.load_or_create_embeddings(movies_arr)
+    return sem_search.search(query, limit)
