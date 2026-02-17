@@ -106,7 +106,7 @@ def semantic_search(query, limit=5):
     sem_search.load_or_create_embeddings(movies_arr)
     return sem_search.search(query, limit)
 
-def chunk_text(text: str, size: int):
+def chunk_text(text: str, size: int, overlap: int):
     print(f"Chunking {len(text)} characters")
     word_list = text.split()
     chunk_num = 1
@@ -118,8 +118,12 @@ def chunk_text(text: str, size: int):
             text_chunked = " ".join(current_chunk)
             print(f"{chunk_num}. {text_chunked}")
             chunk_num += 1
-            current_chunk.clear()
 
-    if len(current_chunk) > 1:
+            if overlap == 0:
+                current_chunk.clear()
+            else:
+                current_chunk = current_chunk[-overlap:]
+
+    if (len(current_chunk) > 1 and overlap == 0) or (overlap >= 1 and len(current_chunk) > overlap):
         final_chunk = " ".join(current_chunk)
         print(f"{chunk_num}. {final_chunk}")
