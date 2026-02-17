@@ -2,7 +2,7 @@
 
 import argparse
 from lib.semantic_search import verify_model, embed_text, verify_embeddings, embed_query_text
-from lib.semantic_search import semantic_search
+from lib.semantic_search import semantic_search, chunk_text
 
 def main():
     parser = argparse.ArgumentParser(description="Semantic Search CLI")
@@ -20,6 +20,10 @@ def main():
     semantic_search_parser = subparsers.add_parser("search", help="semantic search a query")
     semantic_search_parser.add_argument("query", type=str, help="query to be searched using semantic search")
     semantic_search_parser.add_argument("--limit", type=int, nargs="?", default=5, help="limit the number of songs received")
+
+    chunk_parser = subparsers.add_parser("chunk", help="chunk a text size into smaller pieces")
+    chunk_parser.add_argument("text", type=str, help="text to be chunked")
+    chunk_parser.add_argument("--chunk-size", type=int, nargs="?", default=200, help="number of characters to chunk")
 
     args = parser.parse_args()
 
@@ -46,6 +50,9 @@ def main():
                 print(f"{num}. {query_result[1]['title']} (score: {query_result[0]})")
                 print(f"{query_result[1]['description']}\n")
 
+        case "chunk":
+            print(f"Starting the chunking process with {args.chunk_size}...")
+            chunk_text(args.text, args.chunk_size)
         case _:
             parser.print_help()
 

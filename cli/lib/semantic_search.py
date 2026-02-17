@@ -105,3 +105,21 @@ def semantic_search(query, limit=5):
 
     sem_search.load_or_create_embeddings(movies_arr)
     return sem_search.search(query, limit)
+
+def chunk_text(text: str, size: int):
+    print(f"Chunking {len(text)} characters")
+    word_list = text.split()
+    chunk_num = 1
+    current_chunk = []
+    
+    for _, word in enumerate(word_list):
+        current_chunk.append(word)
+        if len(current_chunk) >= size:
+            text_chunked = " ".join(current_chunk)
+            print(f"{chunk_num}. {text_chunked}")
+            chunk_num += 1
+            current_chunk.clear()
+
+    if len(current_chunk) > 1:
+        final_chunk = " ".join(current_chunk)
+        print(f"{chunk_num}. {final_chunk}")
