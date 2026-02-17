@@ -1,7 +1,7 @@
 from sentence_transformers import SentenceTransformer
 from consts import EMBEDDINGS_PATH, DATA_PATH
 import numpy as np
-import os, json
+import os, json, re
 
 class SemanticSearch:
     def __init__(self):
@@ -127,3 +127,26 @@ def chunk_text(text: str, size: int, overlap: int):
     if (len(current_chunk) > 1 and overlap == 0) or (overlap >= 1 and len(current_chunk) > overlap):
         final_chunk = " ".join(current_chunk)
         print(f"{chunk_num}. {final_chunk}")
+
+def semantic_chunk(text: str, max_chunk_size: int, overlap: int):
+    print(f"Semantically chunking {len(text)} characters")
+    text_arr = re.split(r"(?<=[.!?])\s+", text)
+    result_arr = []
+    current_chunk = []
+
+    for idx, sentence in enumerate(text_arr, 1):
+        current_chunk.append(sentence)
+        if idx == len(text_arr):
+            final_chunk = " ".join(current_chunk)
+            result_arr.append(final_chunk)
+            break
+        
+        if len(current_chunk) == max_chunk_size:
+            text_chunked = " ".join(current_chunk)
+            result_arr.append(text_chunked)
+            if overlap == 0:
+                current_chunk.clear()
+            else:
+                current_chunk = current_chunk[-overlap:]
+
+    return result_arr
