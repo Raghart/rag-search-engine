@@ -90,7 +90,7 @@ class ChunkedSemanticSearch(SemanticSearch):
                 "title": doc["title"],
                 "document": doc["description"][:100],
                 "score": round(data_score, 4),
-                "metadata": {}
+                "metadata": self.chunk_metadata[idx]
             }
             parsed_movies.append(formatted_movie)
         
