@@ -2,7 +2,7 @@ import os
 from inverted_index import InvertedIndex
 from lib.semantic_search import ChunkedSemanticSearch
 from consts import IDX_PATH
-
+from lib.semantic_search import load_movies
 
 class HybridSearch:
     def __init__(self, documents):
@@ -18,10 +18,58 @@ class HybridSearch:
     def _bm25_search(self, query, limit):
         self.idx.load()
         return self.idx.bm25_search(query, limit)
+    
+    def _hybrid_score(self, bm25_score: float, semantic_score: float, alpha=0.5):
+        return alpha * bm25_score + (1-alpha) * semantic_score
 
     def weighted_search(self, query, alpha, limit=5):
-        raise NotImplementedError("Weighted hybrid search is not implemented yet.")
+        bm25_results = self._bm25_search(query, limit*500)
+        chunk_search_results = self.semantic_search.search_chunks(query, limit*500)
 
+        bm25_scores = []
+        chunk_scores = []
+        for bm25_data in bm25_results:
+            bm25_scores.append(bm25_data[1])
+        
+        for chunk_result in chunk_search_results:
+            chunk_scores.append(chunk_result["score"])
+        
+        normalized_bm25_scores = normalize_data(bm25_scores)
+        normalized_chunk_scores = normalize_data(chunk_scores)
+
+        hybrid_map = {}
+        for idx, data in enumerate(bm25_results):
+            hybrid_map[data[0]["id"]] = {
+                "doc": data[0],
+                "bm25_score": normalized_bm25_scores[idx],
+                "semantic_score": 0
+            }
+        
+        for idx, sem_data in enumerate(chunk_search_results):
+            if sem_data["id"] in hybrid_map:
+                data_dict = hybrid_map[sem_data["id"]]
+                data_dict["semantic_score"] = normalized_chunk_scores[idx]
+            else:
+                hybrid_map[sem_data["id"]] = {
+                    "doc": {
+                        "id": sem_data["id"],
+                        "title": sem_data["title"],
+                        "description": sem_data["document"]
+                    },
+                    "semantic_score": normalized_chunk_scores[idx],
+                    "bm25_score": 0
+                }
+
+        hybrid_results = []
+        
+        for idx, hybrid_data in enumerate(hybrid_map.values()):
+            bm25_score = hybrid_data["bm25_score"]
+            sem_score = hybrid_data["semantic_score"]
+            hybrid_data["hybrid_score"] = self._hybrid_score(bm25_score, sem_score, alpha)
+            hybrid_results.append(hybrid_data)
+
+        return list(sorted(hybrid_results, key=lambda x: x["hybrid_score"], reverse=True))[:limit]
+        
     def rrf_search(self, query, k, limit=10):
         raise NotImplementedError("RRF hybrid search is not implemented yet.")
 
@@ -40,3 +88,8 @@ def normalize_data(array_num: list):
         result_arr.append((num - min_num) / (max_num - min_num))
         
     return result_arr
+
+def weighted_search(text: str, alpha: float, limit):
+    movie_documents = load_movies()
+    hybrid_search = HybridSearch(movie_documents)
+    return hybrid_search.weighted_search(text, alpha, limit)
