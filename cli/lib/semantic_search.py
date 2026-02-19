@@ -219,12 +219,16 @@ def chunk_text(text: str, size: int, overlap: int):
 
 def semantic_chunk(text: str, max_chunk_size: int, overlap: int):
     print(f"Semantically chunking {len(text)} characters")
-    text_arr = re.split(r"(?<=[.!?])\s+", text)
+    parsed_text = text.strip()
+    if len(parsed_text) == 0:
+        return []
+    
+    text_arr = re.split(r"(?<=[.!?])\s+", parsed_text)
     result_arr = []
     current_chunk = []
 
     for idx, sentence in enumerate(text_arr, 1):
-        current_chunk.append(sentence)
+        current_chunk.append(sentence.strip())
         if idx == len(text_arr):
             final_chunk = " ".join(current_chunk)
             result_arr.append(final_chunk)
