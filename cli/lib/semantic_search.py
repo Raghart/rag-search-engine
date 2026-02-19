@@ -224,6 +224,9 @@ def semantic_chunk(text: str, max_chunk_size: int, overlap: int):
         return []
     
     text_arr = re.split(r"(?<=[.!?])\s+", parsed_text)
+    if len(text_arr) == 1 and not text.endswith((".", "!", "?")):
+        text_arr = [text]
+
     result_arr = []
     current_chunk = []
 
