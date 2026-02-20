@@ -53,6 +53,21 @@ class HybridSearch:
             - "scary movie with bear from few years ago" -> "bear horror movie 2015-2020"
 
             Rewritten query:"""
+        if enhance == "expand":
+            return f"""Expand this movie search query with related terms.
+
+            Add synonyms and related concepts that might appear in movie descriptions.
+            Keep expansions relevant and focused.
+            This will be appended to the original query.
+
+            Examples:
+
+            - "scary bear movie" -> "scary horror grizzly bear movie terrifying film"
+            - "action movie with bear" -> "action thriller bear chase fight adventure"
+            - "comedy with bear" -> "comedy funny bear humor lighthearted"
+
+            Query: "{query}"
+            """
         raise ValueError("Enhance is not a valid option")
 
     def weighted_search(self, query, alpha, limit=5):
@@ -105,30 +120,29 @@ class HybridSearch:
     
     def _get_rrf_score(self, rank: int, k:int=60) -> float:
         return 1 / (k+rank)
+
+    def process_query(self, query:str, enhance: str):
+        api_key = os.environ.get("rag-gemini-key")
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model='gemini-2.5-flash', 
+            contents=self._build_query_prompt(query, enhance)
+        )
+
+        if enhance == "spell":
+            return response.text.replace("Corrected: ", "")
+        
+        if enhance == "rewrite":
+            return response.text.replace("Rewritten query:","")
+        
+        if enhance == "expand":
+            return response.text.replace("Query: ","")
         
     def rrf_search(self, query:str, k:int, limit:int, enhance:str):
         search_query = query
         load_dotenv()
-        api_key = os.environ.get("rag-gemini-key")
-        if enhance == "spell":
-            client = genai.Client(api_key=api_key)
-            response = client.models.generate_content(
-                model='gemini-2.5-flash', 
-                contents=self._build_query_prompt(query, enhance)
-            )
-            enchanced_query = response.text.replace("Corrected: ", "")
-            search_query = enchanced_query
-        
-        if enhance == "rewrite":
-            client = genai.Client(api_key=api_key)
-            response = client.models.generate_content(
-                model='gemini-2.5-flash', 
-                contents=self._build_query_prompt(query, enhance)
-            )
-            rewriten_response = response.text.replace("Rewritten query:","")
-            search_query = rewriten_response
-
         if enhance is not None:
+            search_query = self.process_query(query, enhance)
             print(f"Enhanced query ({enhance}): '{query}' -> '{search_query}'")
 
         bm25_results = self._bm25_search(search_query, limit*500)

@@ -20,7 +20,7 @@ def main() -> None:
     rrf_search_parser.add_argument("--limit", type=int, nargs="?", default=5, help="limit number of responses")
     rrf_search_parser.add_argument(
         "--enhance", type=str, 
-        choices=["spell", "rewrite"], 
+        choices=["spell", "rewrite", "expand"], 
         help="Query enhancement method"
     )
 
