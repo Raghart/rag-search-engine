@@ -3,6 +3,8 @@ from inverted_index import InvertedIndex
 from lib.semantic_search import ChunkedSemanticSearch
 from consts import IDX_PATH
 from lib.semantic_search import load_movies
+from dotenv import load_dotenv
+from google import genai
 
 class HybridSearch:
     def __init__(self, documents):
@@ -21,6 +23,16 @@ class HybridSearch:
     
     def _hybrid_score(self, bm25_score: float, semantic_score: float, alpha=0.5):
         return alpha * bm25_score + (1-alpha) * semantic_score
+    
+    def _build_query_prompt(self, query:str):
+        return f"""Fix any spelling errors in this movie search query.
+
+        Only correct obvious typos. Don't change correctly spelled words.
+
+        Query: "{query}"
+
+        If no errors, return the original query.
+        Corrected:"""
 
     def weighted_search(self, query, alpha, limit=5):
         bm25_results = self._bm25_search(query, limit*500)
@@ -73,9 +85,23 @@ class HybridSearch:
     def _get_rrf_score(self, rank: int, k:int=60) -> float:
         return 1 / (k+rank)
         
-    def rrf_search(self, query:str, k:int, limit:int=10):
-        bm25_results = self._bm25_search(query, limit*500)
-        semantic_results = self.semantic_search.search_chunks(query, limit*500)
+    def rrf_search(self, query:str, k:int, limit:int, enhance:str):
+        search_query = query
+        if enhance == "spell":
+            load_dotenv()
+            api_key = os.environ.get("rag-gemini-key")
+            client = genai.Client(api_key=api_key)
+            response = client.models.generate_content(
+                model='gemini-2.5-flash', 
+                contents=self._build_query_prompt(query)
+            )
+            enchanced_query = response.text.replace("Corrected: ", "")
+            if "Corrected" in response.text:
+                search_query = enchanced_query
+                print(f"Enhanced query ({enhance}): '{query}' -> '{enchanced_query}'")
+
+        bm25_results = self._bm25_search(search_query, limit*500)
+        semantic_results = self.semantic_search.search_chunks(search_query, limit*500)
 
         search_map = {}
         for bm25_rank, bm25_data in enumerate(bm25_results, 1):
@@ -129,7 +155,7 @@ def weighted_search(text: str, alpha: float, limit):
     hybrid_search = HybridSearch(movie_documents)
     return hybrid_search.weighted_search(text, alpha, limit)
 
-def rrf_search_query(query: str, k: int, limit: int):
+def rrf_search_query(query: str, k: int, limit: int, enhance: str):
     movie_data = load_movies()
     hybrid_search = HybridSearch(movie_data)
-    return hybrid_search.rrf_search(query, k, limit)
+    return hybrid_search.rrf_search(query, k, limit, enhance)
