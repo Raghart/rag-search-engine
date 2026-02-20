@@ -24,15 +24,36 @@ class HybridSearch:
     def _hybrid_score(self, bm25_score: float, semantic_score: float, alpha=0.5):
         return alpha * bm25_score + (1-alpha) * semantic_score
     
-    def _build_query_prompt(self, query:str):
-        return f"""Fix any spelling errors in this movie search query.
+    def _build_query_prompt(self, query:str, enhance: str):
+        if enhance == "spell":
+            return f"""Fix any spelling errors in this movie search query.
 
-        Only correct obvious typos. Don't change correctly spelled words.
+            Only correct obvious typos. Don't change correctly spelled words.
 
-        Query: "{query}"
+            Query: "{query}"
 
-        If no errors, return the original query.
-        Corrected:"""
+            If no errors, return the original query.
+            Corrected:"""
+        if enhance == "rewrite":
+            return f"""Rewrite this movie search query to be more specific and searchable.
+
+            Original: "{query}"
+
+            Consider:
+            - Common movie knowledge (famous actors, popular films)
+            - Genre conventions (horror = scary, animation = cartoon)
+            - Keep it concise (under 10 words)
+            - It should be a google style search query that's very specific
+            - Don't use boolean logic
+
+            Examples:
+
+            - "that bear movie where leo gets attacked" -> "The Revenant Leonardo DiCaprio bear attack"
+            - "movie about bear in london with marmalade" -> "Paddington London marmalade"
+            - "scary movie with bear from few years ago" -> "bear horror movie 2015-2020"
+
+            Rewritten query:"""
+        raise ValueError("Enhance is not a valid option")
 
     def weighted_search(self, query, alpha, limit=5):
         bm25_results = self._bm25_search(query, limit*500)
@@ -87,18 +108,28 @@ class HybridSearch:
         
     def rrf_search(self, query:str, k:int, limit:int, enhance:str):
         search_query = query
+        load_dotenv()
+        api_key = os.environ.get("rag-gemini-key")
         if enhance == "spell":
-            load_dotenv()
-            api_key = os.environ.get("rag-gemini-key")
             client = genai.Client(api_key=api_key)
             response = client.models.generate_content(
                 model='gemini-2.5-flash', 
-                contents=self._build_query_prompt(query)
+                contents=self._build_query_prompt(query, enhance)
             )
             enchanced_query = response.text.replace("Corrected: ", "")
-            if "Corrected" in response.text:
-                search_query = enchanced_query
-                print(f"Enhanced query ({enhance}): '{query}' -> '{enchanced_query}'")
+            search_query = enchanced_query
+        
+        if enhance == "rewrite":
+            client = genai.Client(api_key=api_key)
+            response = client.models.generate_content(
+                model='gemini-2.5-flash', 
+                contents=self._build_query_prompt(query, enhance)
+            )
+            rewriten_response = response.text.replace("Rewritten query:","")
+            search_query = rewriten_response
+
+        if enhance is not None:
+            print(f"Enhanced query ({enhance}): '{query}' -> '{search_query}'")
 
         bm25_results = self._bm25_search(search_query, limit*500)
         semantic_results = self.semantic_search.search_chunks(search_query, limit*500)
