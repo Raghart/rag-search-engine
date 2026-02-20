@@ -12,3 +12,4 @@ DOC_LENGTH_PATH = os.path.join(PROJECT_ROOT, "cache", "doc_lengths.pkl")
 EMBEDDINGS_PATH = os.path.join(PROJECT_ROOT, "cache", "movie_embeddings.npy")
 CHUNK_EMBEDDINGS_PATH = os.path.join(PROJECT_ROOT, "cache", "chunk_embeddings.npy")
 CHUNK_METADATA_PATH = os.path.join(PROJECT_ROOT, "cache", "chunk_metadata.json")
+TEST_TEXT = "Why is Boot.dev such a great place to learn about RAG? Use one paragraph maximum."
