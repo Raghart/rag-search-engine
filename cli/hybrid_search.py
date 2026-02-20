@@ -69,9 +69,44 @@ class HybridSearch:
             hybrid_results.append(hybrid_data)
 
         return list(sorted(hybrid_results, key=lambda x: x["hybrid_score"], reverse=True))[:limit]
+    
+    def _get_rrf_score(self, rank: int, k:int=60) -> float:
+        return 1 / (k+rank)
         
-    def rrf_search(self, query, k, limit=10):
-        raise NotImplementedError("RRF hybrid search is not implemented yet.")
+    def rrf_search(self, query:str, k:int, limit:int=10):
+        bm25_results = self._bm25_search(query, limit*500)
+        semantic_results = self.semantic_search.search_chunks(query, limit*500)
+
+        search_map = {}
+        for bm25_rank, bm25_data in enumerate(bm25_results, 1):
+            doc = bm25_data[0]
+            search_map[doc["id"]] = {
+                "id": doc["id"],
+                "title": doc["title"],
+                "description": doc["description"],
+                "bm25_rank": bm25_rank,
+                "sem_rank": 0,
+                "rrf_score": self._get_rrf_score(bm25_rank, k)
+            }
+        
+        for sem_rank, sem_data in enumerate(semantic_results, 1):
+            doc_id = sem_data["id"]
+            if doc_id in search_map:
+                search_data = search_map[doc_id]
+                search_data["sem_rank"] = sem_rank
+                search_data["rrf_score"] += self._get_rrf_score(sem_rank, k)
+            else:
+                search_map[doc_id] = {
+                    "id": doc_id,
+                    "title": sem_data["title"],
+                    "description": sem_data["document"],
+                    "sem_rank": sem_rank,
+                    "bm25_rank": 0,
+                    "rrf_score": self._get_rrf_score(sem_rank, k)
+                }
+        
+        return list(sorted(search_map.values(), key=lambda x: x["rrf_score"], reverse=True)) [:limit]
+
 
 def normalize_data(array_num: list):
     if len(array_num) == 0:
@@ -93,3 +128,8 @@ def weighted_search(text: str, alpha: float, limit):
     movie_documents = load_movies()
     hybrid_search = HybridSearch(movie_documents)
     return hybrid_search.weighted_search(text, alpha, limit)
+
+def rrf_search_query(query: str, k: int, limit: int):
+    movie_data = load_movies()
+    hybrid_search = HybridSearch(movie_data)
+    return hybrid_search.rrf_search(query, k, limit)

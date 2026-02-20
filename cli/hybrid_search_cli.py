@@ -1,4 +1,4 @@
-from hybrid_search import normalize_data, weighted_search
+from hybrid_search import normalize_data, weighted_search, rrf_search_query
 import argparse
 
 
@@ -13,6 +13,11 @@ def main() -> None:
     weight_search_parser.add_argument("text", type=str, help="Text to be searched")
     weight_search_parser.add_argument("--alpha", type=float, nargs="?", default=0.5, help="number that controls the weight")
     weight_search_parser.add_argument("--limit", type=int, nargs="?", default=5, help="num that marks the limit of songs to retrieve")
+
+    rrf_search_parser = subparsers.add_parser("rrf-search", help="make an rrf search of the following text")
+    rrf_search_parser.add_argument("query", type=str, help="query to be searched using rrf-search")
+    rrf_search_parser.add_argument("-k", type=int, nargs="?", default=60, help="K parameter")
+    rrf_search_parser.add_argument("--limit", type=int, nargs="?", default=5, help="limit number of responses")
 
     args = parser.parse_args()
 
@@ -29,6 +34,15 @@ def main() -> None:
                 print(f"{idx}. {result['doc']['title']}")
                 print(f"BM25: {result['bm25_score']}, Semantic: {result['semantic_score']}")
                 print(f"{result['doc']['description'][:100]}...")
+        
+        case "rrf-search":
+            print("Starting the rrf-search...")
+            search_results = rrf_search_query(args.query, args.k, args.limit)
+            for idx, data in enumerate(search_results, 1):
+                print(f"{idx}. {data['title']}")
+                print(f"RRF Score: {data['rrf_score']:.4f}")
+                print(f"BM25 Rank: {data['bm25_rank']}, Semantic Rank: {data['sem_rank']}")
+                print(f"{data['description'][:100]}...\n")
         case _:
             parser.print_help()
 
