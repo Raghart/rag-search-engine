@@ -6,6 +6,7 @@ from lib.semantic_search import load_movies
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from sentence_transformers.cross_encoder import CrossEncoder
 
 class HybridSearch:
     def __init__(self, documents):
@@ -147,7 +148,7 @@ class HybridSearch:
             print(f"Enhanced query ({enhance}): '{query}' -> '{search_query}'")
         
         number_searches = limit*500
-        if rerank_method == "individual":
+        if rerank_method is not None:
             number_searches = limit*5
             
         bm25_results = self._bm25_search(search_query, number_searches)
@@ -187,46 +188,61 @@ class HybridSearch:
                    reverse=True)) [:number_searches]
         
         if rerank_method is not None:
-            return rrf_results[:limit]   
+            print(f"Reranking top {limit} results using cross_encoder method...")
+            return self.rerank_results(rrf_results, search_query, rerank_method, limit)  
             
         return rrf_results [:limit]
 
-    def rerank_results(self, rrf_results: list, query:str, rerank_method: str):
+    def rerank_results(self, rrf_results: list, query:str, rerank_method: str, limit: int):
         api_key = os.environ.get("rag-gemini-key")
         client = genai.Client(api_key=api_key)
 
-        for _, rrf_data in enumerate(rrf_results):
-            response = client.models.generate_content(
-                model='gemini-2.5-flash', 
-                contents=self._build_rerank_prompt(rrf_data, query, rerank_method),
-                config=types.GenerateContentConfig(
-                    safety_settings=[
-                types.SafetySetting(
-                    category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
-                ),
-                types.SafetySetting(
-                    category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
-                ),
-                types.SafetySetting(
-                    category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
-                ),
-                types.SafetySetting(
-                    category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
-                ),
-                ]
+        if rerank_method == "cross_encoder":
+            pairs = []
+            for _, doc in enumerate(rrf_results):
+                pairs.append([query, f"{doc.get('title','')} - {doc.get('document','')}"])
+            cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2")
+            scores = cross_encoder.predict(pairs)
+
+            for idx, score in enumerate(scores):
+                rrf_results[idx]["cross_score"] = score
+            
+            return list(sorted(rrf_results, key=lambda x: x["cross_score"], reverse=True)) [:limit]
+
+
+        if rerank_method == "individual":
+            for _, rrf_data in enumerate(rrf_results):
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash', 
+                    contents=self._build_rerank_prompt(rrf_data, query, rerank_method),
+                    config=types.GenerateContentConfig(
+                        safety_settings=[
+                    types.SafetySetting(
+                        category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    types.SafetySetting(
+                        category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    types.SafetySetting(
+                        category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    types.SafetySetting(
+                        category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    ]
+                    )
                 )
-            )
-            print(response)
-            print(response.text)
-            llm_score = float(response.text.replace("Score:", ""))
-            rrf_data["llm_score"] = llm_score
-            time.sleep(5)
-        
-        return list(sorted(rrf_results, key=lambda x: x["llm_score"], reverse=True))
+                print(response)
+                print(response.text)
+                llm_score = float(response.text.replace("Score:", ""))
+                rrf_data["llm_score"] = llm_score
+                time.sleep(5)
+            
+            return list(sorted(rrf_results, key=lambda x: x["llm_score"], reverse=True))
              
     
     def _build_rerank_prompt(self, doc: dict, query: str, rerank_method: str):

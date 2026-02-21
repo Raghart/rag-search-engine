@@ -26,7 +26,7 @@ def main() -> None:
 
     rrf_search_parser.add_argument(
         "--rerank-method", type=str,
-        choices=["individual", "batch"],
+        choices=["individual", "batch", "cross_encoder"],
         help="Apply rerank method to the search"
     )
 
@@ -57,6 +57,9 @@ def main() -> None:
             )
             for idx, data in enumerate(search_results, 1):
                 print(f"{idx}. {data['title']}")
+                if args.rerank_method == "cross_encoder":
+                    print(f"Cross Encoder Score: {data['cross_score']}")
+                    
                 print(f"RRF Score: {data['rrf_score']:.4f}")
                 print(f"BM25 Rank: {data['bm25_rank']}, Semantic Rank: {data['sem_rank']}")
                 print(f"{data['description'][:100]}...\n")
