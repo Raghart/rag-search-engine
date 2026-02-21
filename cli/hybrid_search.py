@@ -1,10 +1,11 @@
-import os
+import os, time
 from inverted_index import InvertedIndex
 from lib.semantic_search import ChunkedSemanticSearch
 from consts import IDX_PATH
 from lib.semantic_search import load_movies
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 
 class HybridSearch:
     def __init__(self, documents):
@@ -138,15 +139,19 @@ class HybridSearch:
         if enhance == "expand":
             return response.text.replace("Query: ","")
         
-    def rrf_search(self, query:str, k:int, limit:int, enhance:str):
+    def rrf_search(self, query:str, k:int, limit:int, enhance:str, rerank_method: str):
         search_query = query
         load_dotenv()
         if enhance is not None:
             search_query = self.process_query(query, enhance)
             print(f"Enhanced query ({enhance}): '{query}' -> '{search_query}'")
-
-        bm25_results = self._bm25_search(search_query, limit*500)
-        semantic_results = self.semantic_search.search_chunks(search_query, limit*500)
+        
+        number_searches = limit*500
+        if rerank_method == "individual":
+            number_searches = limit*5
+            
+        bm25_results = self._bm25_search(search_query, number_searches)
+        semantic_results = self.semantic_search.search_chunks(search_query, number_searches)
 
         search_map = {}
         for bm25_rank, bm25_data in enumerate(bm25_results, 1):
@@ -176,7 +181,70 @@ class HybridSearch:
                     "rrf_score": self._get_rrf_score(sem_rank, k)
                 }
         
-        return list(sorted(search_map.values(), key=lambda x: x["rrf_score"], reverse=True)) [:limit]
+        rrf_results = list(
+            sorted(search_map.values(), 
+                   key=lambda x: x["rrf_score"], 
+                   reverse=True)) [:number_searches]
+        
+        if rerank_method is not None:
+            return rrf_results[:limit]   
+            
+        return rrf_results [:limit]
+
+    def rerank_results(self, rrf_results: list, query:str, rerank_method: str):
+        api_key = os.environ.get("rag-gemini-key")
+        client = genai.Client(api_key=api_key)
+
+        for _, rrf_data in enumerate(rrf_results):
+            response = client.models.generate_content(
+                model='gemini-2.5-flash', 
+                contents=self._build_rerank_prompt(rrf_data, query, rerank_method),
+                config=types.GenerateContentConfig(
+                    safety_settings=[
+                types.SafetySetting(
+                    category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                ),
+                types.SafetySetting(
+                    category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                ),
+                types.SafetySetting(
+                    category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                ),
+                types.SafetySetting(
+                    category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                ),
+                ]
+                )
+            )
+            print(response)
+            print(response.text)
+            llm_score = float(response.text.replace("Score:", ""))
+            rrf_data["llm_score"] = llm_score
+            time.sleep(5)
+        
+        return list(sorted(rrf_results, key=lambda x: x["llm_score"], reverse=True))
+             
+    
+    def _build_rerank_prompt(self, doc: dict, query: str, rerank_method: str):
+        if rerank_method == "individual":
+            return f"""Rate how well this movie matches the search query.
+
+            Query: "{query}"
+            Movie: {doc.get("title", "")} - {doc.get("description", "")}
+
+            Consider:
+            - Direct relevance to query
+            - User intent (what they're looking for)
+            - Content appropriateness
+
+            Rate 0-10 (10 = perfect match).
+            Give me ONLY the number in your response, no other text or explanation.
+
+            Score:"""
 
 
 def normalize_data(array_num: list):
@@ -200,7 +268,7 @@ def weighted_search(text: str, alpha: float, limit):
     hybrid_search = HybridSearch(movie_documents)
     return hybrid_search.weighted_search(text, alpha, limit)
 
-def rrf_search_query(query: str, k: int, limit: int, enhance: str):
+def rrf_search_query(query: str, k: int, limit: int, enhance: str, rerank_method: str):
     movie_data = load_movies()
     hybrid_search = HybridSearch(movie_data)
-    return hybrid_search.rrf_search(query, k, limit, enhance)
+    return hybrid_search.rrf_search(query, k, limit, enhance, rerank_method)
