@@ -288,3 +288,37 @@ def rrf_search_query(query: str, k: int, limit: int, enhance: str, rerank_method
     movie_data = load_movies()
     hybrid_search = HybridSearch(movie_data)
     return hybrid_search.rrf_search(query, k, limit, enhance, rerank_method)
+
+def evalute_results(query: str, rrf_results: list):
+    api_key = os.environ.get("rag-gemini-key")
+    client = genai.Client(api_key=api_key)
+    
+    formatted_list = []
+    for _, data in enumerate(rrf_results):
+        formatted_list.append(str(data))
+
+    response = client.models.generate_content(
+                    model='gemini-2.5-flash', 
+                    contents=f"""Rate how relevant each result is to this query on a 0-3 scale:
+
+                Query: "{query}"
+
+                Results:
+                {", ".join(formatted_list)}
+
+                Scale:
+                - 3: Highly relevant
+                - 2: Relevant
+                - 1: Marginally relevant
+                - 0: Not relevant
+
+                Do NOT give any numbers out than 0, 1, 2, or 3.
+
+                Return ONLY the scores in the same order you were given the documents. Return a valid JSON list, nothing else. For example:
+
+                [2, 0, 3, 2, 0, 1]""")
+    
+    llm_parsed_response = response.text.replace("[","").replace("]","").split(",")
+    for idx, rrf_data in enumerate(rrf_results,1):
+        mov_title = rrf_data.get("title","")
+        print(f"{idx}. {mov_title}: {llm_parsed_response[idx-1].strip()}/3")

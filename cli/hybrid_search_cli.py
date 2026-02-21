@@ -1,4 +1,4 @@
-from hybrid_search import normalize_data, weighted_search, rrf_search_query
+from hybrid_search import normalize_data, weighted_search, rrf_search_query, evalute_results
 import argparse
 
 
@@ -29,6 +29,8 @@ def main() -> None:
         choices=["individual", "batch", "cross_encoder"],
         help="Apply rerank method to the search"
     )
+
+    rrf_search_parser.add_argument("--evaluate", action="store_true", help="Let a LLM evalute the results")
 
     args = parser.parse_args()
 
@@ -63,6 +65,10 @@ def main() -> None:
                 print(f"RRF Score: {data['rrf_score']:.4f}")
                 print(f"BM25 Rank: {data['bm25_rank']}, Semantic Rank: {data['sem_rank']}")
                 print(f"{data['description'][:100]}...\n")
+            
+            if args.evaluate:
+                evalute_results(args.query, search_results)
+
         case _:
             parser.print_help()
 
