@@ -38,8 +38,10 @@ def main():
                 relevant_retrieved += 1
         
         precision = relevant_retrieved / len(search_results)
+        recall = relevant_retrieved / len(relevant_results)
         print(f"- Query: {query}")
         print(f"    - Precision@{limit}: {precision:.4f}")
+        print(f"    - Recall@{limit}: {recall:.4f}")
         print(f"    - Retrieved: {', '.join(search_titles)}")
         print(f"    - Relevant: {', '.join(relevant_results)}")
         print("\n")
