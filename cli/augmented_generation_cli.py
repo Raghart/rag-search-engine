@@ -1,5 +1,5 @@
 import argparse
-from augmented_gen_funcs import rag_search, sum_search_query
+from augmented_gen_funcs import rag_search, sum_search_query, citate_search_query
 
 def main():
     parser = argparse.ArgumentParser(description="Retrieval Augmented Generation CLI")
@@ -15,6 +15,12 @@ def main():
     )
     rag_sum_parser.add_argument("query", type=str, help="Search query for Summarize")
     rag_sum_parser.add_argument("--limit", nargs="?", type=int, default=5, help="Number of search results to retrieve")
+
+    citations_parser = subparsers.add_parser(
+        "citations", help="Include citations of the movies"
+    )
+    citations_parser.add_argument("query", type=str, help="Query of the movies to search")
+    citations_parser.add_argument("--limit", type=int, nargs="?", default=5, help="Limit the num of movies to recieve")
 
     args = parser.parse_args()
 
@@ -36,6 +42,15 @@ def main():
             
             print("\nLLM Summary:")
             print(f"{llm_res}")
+        
+        case "citations":
+            ser_results, llm_resp = citate_search_query(args.query, args.limit)
+            print("Search Results:")
+            for _, data in enumerate(ser_results):
+                print(f"    - {data['title']}")
+            
+            print("\nLLM Answer:")
+            print(f"{llm_resp}")
 
         case _:
             parser.print_help()
