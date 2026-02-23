@@ -72,3 +72,31 @@ def citate_search_query(query: str, limit):
         contents=prompt
     )
     return search_results, response.text
+
+def question_search_query(query:str, limit:int):
+    search_results = rrf_search_query(query, 60, limit, None, None)
+    api_key = os.environ.get("rag-gemini-key")
+    client = genai.Client(api_key=api_key)
+    prompt = prompt = prompt = f"""Answer the user's question based on the provided movies that are available on Hoopla.
+
+        This should be tailored to Hoopla users. Hoopla is a movie streaming service.
+
+        Question: {query}
+
+        Documents:
+        {search_results}
+
+        Instructions:
+        - Answer questions directly and concisely
+        - Be casual and conversational
+        - Don't be cringe or hype-y
+        - Talk like a normal person would in a chat conversation
+
+        Answer:"""
+    
+    response = client.models.generate_content(
+        model='gemini-2.5-flash', 
+        contents=prompt
+    )
+    
+    return search_results, response.text
