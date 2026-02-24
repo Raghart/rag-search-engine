@@ -9,8 +9,8 @@ def main():
     parser.add_argument("--image", type=str, help="path to the image to analyze")
     parser.add_argument("--query", type=str, help="query describing the image")
     args = parser.parse_args()
-    
-    if len(args.image.strip()) == 0 or len(args.query) == 0:
+
+    if not os.path.exists(args.image) or len(args.query) == 0:
         parser.print_help()
         return
     
