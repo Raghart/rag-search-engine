@@ -1,5 +1,5 @@
 import argparse
-from lib.multimodal_search import verify_image_embedding
+from lib.multimodal_search import verify_image_embedding, search_movie_by_img
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Multimodal Search CLI")
@@ -7,12 +7,21 @@ def main() -> None:
     
     verify_img_parser = subparsers.add_parser("verify_image_embedding", help="Verify if the embedding of an img works")
     verify_img_parser.add_argument("img_path", type=str, help="path to search the img")
+
+    search_img_parser = subparsers.add_parser("image_search", help="search movies by uploading an image")
+    search_img_parser.add_argument("img_path", type=str, help="Path of the image to upload")
     
     args = parser.parse_args()
 
     match args.command:
         case "verify_image_embedding":
             verify_image_embedding(args.img_path)
+        case "image_search":
+            search_results = search_movie_by_img(args.img_path)
+            for idx, mov_data in enumerate(search_results,1):
+                print(f"{idx}. {mov_data['title']} (similarity: {mov_data['cos_score']:.3f})")
+                print(f"{mov_data['description'][:100]}...\n")
+
         case _:
             parser.print_help()
 
